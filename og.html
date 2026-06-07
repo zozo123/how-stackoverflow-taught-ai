@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:1200px;height:630px;overflow:hidden}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+    background:#0d1117;color:#e6edf3;position:relative;
+    background-image:
+      radial-gradient(720px 520px at 88% -12%, rgba(244,128,36,.22), transparent 60%),
+      radial-gradient(620px 460px at 2% 108%, rgba(88,166,255,.14), transparent 58%);
+  }
+  /* faint grid */
+  .grid{position:absolute;inset:0;opacity:.5;
+    background-image:linear-gradient(#ffffff08 1px,transparent 1px),linear-gradient(90deg,#ffffff08 1px,transparent 1px);
+    background-size:48px 48px;-webkit-mask-image:linear-gradient(180deg,transparent,#000 40%,#000 70%,transparent)}
+  .pad{position:absolute;inset:0;padding:64px 70px;display:flex;flex-direction:column;justify-content:space-between}
+
+  .top{display:flex;align-items:center;gap:16px}
+  .logo{display:flex;flex-direction:column;gap:5px}
+  .logo i{display:block;height:5px;border-radius:3px;background:#f48024}
+  .logo i:nth-child(1){width:18px;margin-left:14px}
+  .logo i:nth-child(2){width:32px}
+  .logo i:nth-child(3){width:32px}
+  .kicker{font-family:"SFMono-Regular",ui-monospace,Menlo,monospace;font-size:17px;letter-spacing:.34em;
+    text-transform:uppercase;color:#f6913f;font-weight:600}
+
+  h1{font-size:67px;line-height:1.04;letter-spacing:-1.6px;font-weight:800;max-width:1060px;margin-top:6px}
+  h1 .g{background:linear-gradient(95deg,#f48024,#ffd9a8 58%,#f6913f);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .sub{font-size:25px;color:#9aa7b4;max-width:720px;margin-top:22px;line-height:1.42}
+
+  /* decline curve motif (right) */
+  .viz{position:absolute;right:60px;top:150px;width:430px;height:250px}
+  .vlabel{position:absolute;right:64px;top:128px;font-family:"SFMono-Regular",ui-monospace,Menlo,monospace;
+    font-size:14px;color:#6b7682;letter-spacing:.12em;text-transform:uppercase}
+
+  .bottom{display:flex;align-items:center;justify-content:space-between}
+  .chips{display:flex;gap:14px}
+  .chip{background:#161b22;border:1px solid #26303b;border-radius:12px;padding:14px 20px;display:flex;flex-direction:column;gap:3px}
+  .chip .n{font-family:"SFMono-Regular",ui-monospace,Menlo,monospace;font-size:30px;font-weight:800;color:#f48024;line-height:1}
+  .chip .l{font-size:14px;color:#9aa7b4}
+  .url{font-family:"SFMono-Regular",ui-monospace,Menlo,monospace;font-size:18px;color:#58a6ff;text-align:right}
+  .url .s{display:block;color:#6b7682;font-size:13.5px;letter-spacing:.08em;margin-top:6px;text-transform:uppercase}
+</style>
+</head>
+<body>
+  <div class="grid"></div>
+
+  <!-- decline curve -->
+  <div class="vlabel">questions / month →</div>
+  <svg class="viz" viewBox="0 0 430 250" fill="none">
+    <defs>
+      <linearGradient id="fill" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#f48024" stop-opacity="0.34"/>
+        <stop offset="1" stop-color="#f48024" stop-opacity="0"/>
+      </linearGradient>
+      <linearGradient id="stroke" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#f6913f"/><stop offset="1" stop-color="#f48024"/>
+      </linearGradient>
+    </defs>
+    <!-- area -->
+    <path d="M0 56 L60 44 L120 60 L168 30 L210 78 L262 150 L320 196 L380 222 L430 234 L430 250 L0 250 Z" fill="url(#fill)"/>
+    <!-- line -->
+    <path d="M0 56 L60 44 L120 60 L168 30 L210 78 L262 150 L320 196 L380 222 L430 234"
+      stroke="url(#stroke)" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+    <!-- chatgpt marker -->
+    <line x1="210" y1="6" x2="210" y2="250" stroke="#f85149" stroke-width="2" stroke-dasharray="6 6" opacity="0.85"/>
+    <circle cx="210" cy="78" r="6" fill="#f85149"/>
+    <text x="216" y="22" fill="#f85149" font-family="monospace" font-size="15">ChatGPT</text>
+    <circle cx="168" cy="30" r="5.5" fill="#f6913f"/>
+    <text x="36" y="24" fill="#9aa7b4" font-family="monospace" font-size="14">peak ~146k</text>
+    <circle cx="430" cy="234" r="5.5" fill="#f48024"/>
+  </svg>
+
+  <div class="pad">
+    <div>
+      <div class="top">
+        <span class="logo"><i></i><i></i><i></i></span>
+        <span class="kicker">Interactive deep-dive · coding agents</span>
+      </div>
+      <h1>Stack Overflow didn't just <span style="color:#fff">help</span> AI learn to code.<br><span class="g">It was the classroom.</span></h1>
+      <div class="sub">How 15 years of human Q&amp;A became the training data for AI coding agents — and then trained its own replacement.</div>
+    </div>
+
+    <div class="bottom">
+      <div class="chips">
+        <div class="chip"><span class="n">~58M</span><span class="l">Q&amp;A pairs ingested</span></div>
+        <div class="chip"><span class="n">−76%</span><span class="l">questions since ChatGPT</span></div>
+        <div class="chip"><span class="n">5</span><span class="l">hands-on simulations</span></div>
+      </div>
+      <div class="url">zozo123.github.io/how-stackoverflow-taught-ai
+        <span class="s">vanilla JS · Plotly · KaTeX · fully sourced</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

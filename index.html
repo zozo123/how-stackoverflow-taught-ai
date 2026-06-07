@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>The Data That Taught the Machines · How Stack Overflow Built the Coding Agent</title>
+<meta name="description" content="An interactive deep-dive into how 15 years of Stack Overflow Q&A became the foundational training data for AI coding agents — the perfect classroom, the reward signal, the corpus, the collapse, and what comes next." />
+<meta property="og:title" content="The Data That Taught the Machines" />
+<meta property="og:description" content="How Stack Overflow accidentally built the perfect dataset for teaching AI to code — and then trained its own replacement. Interactive, sourced, hands-on." />
+<meta property="og:type" content="article" />
+
+<link rel="preconnect" href="https://cdn.jsdelivr.net" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous" />
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
+
+<style>
+  :root{
+    --bg:#0d1117; --bg2:#11161e; --panel:#161b22; --panel2:#1c232d;
+    --ink:#e6edf3; --muted:#9aa7b4; --faint:#6b7682; --line:#26303b;
+    --so:#f48024; --so-soft:#f6913f; --accent:#58a6ff; --good:#3fb950; --bad:#f85149;
+    --purple:#bc8cff; --teal:#56d4dd;
+    --mono:"SFMono-Regular",ui-monospace,"JetBrains Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+    --maxw:920px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+    line-height:1.65;font-size:17px;-webkit-font-smoothing:antialiased;
+    background-image:radial-gradient(900px 600px at 78% -8%, rgba(244,128,36,.10), transparent 60%),
+                     radial-gradient(700px 500px at 8% 4%, rgba(88,166,255,.07), transparent 55%);
+  }
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 22px}
+
+  /* progress + nav */
+  #progress{position:fixed;top:0;left:0;height:3px;width:0;background:linear-gradient(90deg,var(--so),var(--so-soft));z-index:60;transition:width .08s linear}
+  nav.top{position:fixed;top:0;left:0;right:0;height:52px;display:flex;align-items:center;justify-content:space-between;
+    padding:0 18px;background:rgba(13,17,23,.78);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);z-index:55}
+  nav.top .brand{font-weight:700;font-size:14px;letter-spacing:.2px;display:flex;align-items:center;gap:9px}
+  nav.top .brand .stack{display:inline-grid;gap:2px}
+  nav.top .brand .stack i{display:block;height:3px;border-radius:2px;background:var(--so)}
+  nav.top .brand .stack i:nth-child(1){width:11px;margin-left:7px}
+  nav.top .brand .stack i:nth-child(2){width:18px}
+  nav.top .brand .stack i:nth-child(3){width:18px}
+  nav.top a.gh{color:var(--muted);text-decoration:none;font-size:13px;border:1px solid var(--line);padding:5px 11px;border-radius:7px}
+  nav.top a.gh:hover{color:var(--ink);border-color:var(--so)}
+
+  /* hero */
+  header.hero{padding:120px 0 38px;text-align:center}
+  .kicker{font-family:var(--mono);font-size:12.5px;letter-spacing:.28em;text-transform:uppercase;color:var(--so);margin-bottom:18px}
+  h1{font-size:clamp(34px,6vw,58px);line-height:1.04;margin:0 0 20px;letter-spacing:-.02em;font-weight:800}
+  h1 .grad{background:linear-gradient(95deg,var(--so),#ffd9a8 60%,var(--so-soft));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .lede{font-size:clamp(17px,2.4vw,21px);color:var(--muted);max-width:680px;margin:0 auto 26px}
+  .hero-meta{font-family:var(--mono);font-size:12.5px;color:var(--faint);display:flex;gap:18px;justify-content:center;flex-wrap:wrap}
+  .hero-meta b{color:var(--muted);font-weight:600}
+
+  /* big stat band */
+  .band{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:46px 0 10px}
+  .band .stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 14px;text-align:center}
+  .band .stat .n{font-size:clamp(22px,3.5vw,30px);font-weight:800;font-family:var(--mono);color:var(--so)}
+  .band .stat .l{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.35}
+  @media(max-width:720px){.band{grid-template-columns:repeat(2,1fr)}}
+
+  /* sections */
+  section{padding:54px 0;border-top:1px solid var(--line)}
+  .sec-no{font-family:var(--mono);font-size:12.5px;color:var(--so);letter-spacing:.18em;text-transform:uppercase}
+  h2{font-size:clamp(25px,4vw,36px);margin:8px 0 6px;letter-spacing:-.015em;line-height:1.12;font-weight:800}
+  h3{font-size:20px;margin:34px 0 8px;letter-spacing:-.01em}
+  p{color:#cdd6e0}
+  p.sub{color:var(--muted);font-size:16px;margin-top:0}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  strong{color:#fff}
+  ul.clean{list-style:none;padding-left:0}
+  ul.clean li{position:relative;padding-left:26px;margin:11px 0;color:#cdd6e0}
+  ul.clean li::before{content:"›";position:absolute;left:6px;top:-1px;color:var(--so);font-weight:800;font-size:18px}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px 22px;margin:22px 0}
+  .lab{background:linear-gradient(180deg,var(--panel),var(--bg2));border:1px solid var(--line);border-radius:16px;padding:22px;margin:26px 0;
+    box-shadow:0 1px 0 rgba(255,255,255,.02) inset, 0 20px 50px -30px rgba(0,0,0,.8)}
+  .lab .lab-head{display:flex;align-items:center;gap:10px;margin-bottom:4px}
+  .lab .lab-head .dot{width:9px;height:9px;border-radius:50%;background:var(--so);box-shadow:0 0 12px var(--so)}
+  .lab .lab-head .t{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--so)}
+  .lab .hint{font-size:13.5px;color:var(--faint);margin:2px 0 18px}
+
+  /* controls */
+  .ctrl{display:flex;flex-direction:column;gap:6px;margin:14px 0}
+  .ctrl .row{display:flex;justify-content:space-between;align-items:baseline;font-size:13.5px}
+  .ctrl label{color:var(--muted);font-family:var(--mono);font-size:12.5px;letter-spacing:.04em}
+  .ctrl .val{font-family:var(--mono);color:var(--so);font-weight:700}
+  input[type=range]{-webkit-appearance:none;appearance:none;height:5px;border-radius:5px;background:var(--panel2);outline:none;width:100%}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:17px;height:17px;border-radius:50%;background:var(--so);cursor:pointer;border:3px solid #2a1a0a;box-shadow:0 0 0 1px var(--so)}
+  input[type=range]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;background:var(--so);cursor:pointer;border:3px solid #2a1a0a}
+  .toggles{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+  .toggle{font-family:var(--mono);font-size:12.5px;border:1px solid var(--line);background:var(--panel2);color:var(--muted);
+    padding:7px 13px;border-radius:8px;cursor:pointer;transition:.15s;user-select:none}
+  .toggle:hover{border-color:var(--so)}
+  .toggle.on{background:rgba(244,128,36,.14);border-color:var(--so);color:var(--so-soft)}
+  .check{display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;color:var(--muted);user-select:none}
+  .check input{width:16px;height:16px;accent-color:var(--so)}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:720px){.grid2{grid-template-columns:1fr}}
+
+  .plot{width:100%;height:360px}
+  .readout{font-family:var(--mono);font-size:13px;color:var(--muted);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-top:12px}
+  .readout b{color:var(--so)}
+  .big{font-size:30px;font-weight:800;font-family:var(--mono)}
+
+  /* SO post anatomy */
+  .so-card{background:#fff;color:#232629;border-radius:10px;overflow:hidden;border:1px solid #d6d9dc;font-size:15px}
+  .so-q{display:flex;gap:14px;padding:16px 18px;border-bottom:1px solid #eaecef}
+  .so-votes{display:flex;flex-direction:column;align-items:center;color:#6a737c;min-width:42px}
+  .so-votes .arrow{font-size:22px;line-height:.7;color:#bcc0c4}
+  .so-votes .count{font-size:21px;font-weight:700;color:#232629;margin:3px 0}
+  .so-votes .acc{color:#48a868;font-size:22px;margin-top:6px}
+  .so-body{flex:1}
+  .so-title{font-size:17px;font-weight:600;color:#0b5394;margin:0 0 6px}
+  .so-tag{display:inline-block;background:#e1ecf4;color:#39739d;font-size:12px;padding:3px 7px;border-radius:5px;margin:8px 6px 0 0;font-family:var(--mono)}
+  .so-code{background:#f6f6f6;border:1px solid #e4e6e8;border-radius:6px;padding:9px 12px;font-family:var(--mono);font-size:13px;color:#1b1f23;margin:9px 0;white-space:pre-wrap}
+  .so-meta{font-size:12px;color:#6a737c;margin-top:8px}
+  .anno{transition:.25s;border-radius:8px}
+  .anno.hl{outline:3px solid var(--so);outline-offset:3px;background:rgba(244,128,36,.08)}
+  .anno-label{display:none}
+
+  .legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+  .legend button{display:flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--line);color:var(--muted);
+    border-radius:8px;padding:8px 12px;cursor:pointer;font-size:13px;text-align:left;flex:1 1 46%;transition:.15s}
+  .legend button:hover{border-color:var(--so);color:var(--ink)}
+  .legend button .sw{width:11px;height:11px;border-radius:3px;flex:none}
+  .legend .ll{font-family:var(--mono);font-size:11.5px}
+
+  blockquote{margin:22px 0;padding:14px 20px;border-left:3px solid var(--so);background:var(--panel);border-radius:0 10px 10px 0;color:#dbe3ea;font-size:16.5px}
+  blockquote cite{display:block;margin-top:8px;font-size:13px;color:var(--faint);font-style:normal;font-family:var(--mono)}
+
+  /* timeline */
+  .tl{position:relative;margin:26px 0 0;padding-left:30px}
+  .tl::before{content:"";position:absolute;left:7px;top:6px;bottom:6px;width:2px;background:linear-gradient(180deg,var(--so),var(--accent))}
+  .tl .ev{position:relative;margin-bottom:26px}
+  .tl .ev::before{content:"";position:absolute;left:-30px;top:4px;width:16px;height:16px;border-radius:50%;background:var(--bg);border:3px solid var(--so)}
+  .tl .ev.blue::before{border-color:var(--accent)}
+  .tl .ev.bad::before{border-color:var(--bad)}
+  .tl .yr{font-family:var(--mono);font-size:12.5px;color:var(--so);letter-spacing:.06em}
+  .tl .ev.blue .yr{color:var(--accent)}
+  .tl .ev.bad .yr{color:var(--bad)}
+  .tl .h{font-weight:700;font-size:16.5px;margin:2px 0 3px}
+  .tl .d{color:var(--muted);font-size:14.5px}
+
+  table.data{width:100%;border-collapse:collapse;font-size:14px;margin-top:12px}
+  table.data th,table.data td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line)}
+  table.data th{color:var(--so);font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase}
+  table.data td.n{font-family:var(--mono);color:var(--ink);text-align:right}
+  table.data tr:hover td{background:var(--panel)}
+
+  .res{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}
+  @media(max-width:720px){.res{grid-template-columns:1fr}}
+  .res a.item{display:block;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;text-decoration:none;transition:.15s}
+  .res a.item:hover{border-color:var(--so);transform:translateY(-2px)}
+  .res .rk{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+  .res .rt{color:var(--ink);font-weight:700;margin:5px 0 4px;font-size:15.5px}
+  .res .rd{color:var(--muted);font-size:13.5px;line-height:1.5}
+
+  .pill{display:inline-block;font-family:var(--mono);font-size:11px;padding:3px 9px;border-radius:20px;border:1px solid var(--line);color:var(--muted);margin:0 6px 6px 0}
+  .pill.fact{border-color:var(--good);color:var(--good)}
+  .pill.warn{border-color:var(--so);color:var(--so-soft)}
+  .pill.illus{border-color:var(--purple);color:var(--purple)}
+
+  .note{font-size:13px;color:var(--faint);border-left:2px solid var(--line);padding-left:12px;margin:14px 0}
+  sup.cite{font-family:var(--mono);font-size:11px;color:var(--so);font-weight:700;cursor:pointer}
+
+  footer{border-top:1px solid var(--line);padding:40px 0 70px;color:var(--faint);font-size:13.5px}
+  .src{font-size:13px;color:var(--muted);line-height:1.9}
+  .src ol{padding-left:22px}
+  .src a{word-break:break-word}
+  details.sources summary{cursor:pointer;color:var(--so);font-family:var(--mono);font-size:13px;letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px}
+  hr.soft{border:none;border-top:1px dashed var(--line);margin:30px 0}
+  .center{text-align:center}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+<nav class="top">
+  <span class="brand"><span class="stack"><i></i><i></i><i></i></span> The Data That Taught the Machines</span>
+  <a class="gh" id="ghlink" href="#" target="_blank" rel="noopener">View source ↗</a>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="kicker">An interactive deep-dive · coding agents</div>
+    <h1>Stack Overflow didn't just <em>help</em> AI learn to code.<br><span class="grad">It was the classroom.</span></h1>
+    <p class="lede">For fifteen years, developers volunteered to build the most rigorously structured dataset of programming logic in human history. Then we taught a machine to read it — and it learned to replace us. Drag the sliders, watch the corpus, and see exactly how human Q&A became machine reasoning.</p>
+    <div class="hero-meta">
+      <span><b>Built with</b> vanilla JS · Plotly · KaTeX</span>
+      <span><b>No backend.</b> No telemetry.</span>
+      <span><b>Every number</b> is sourced ↓</span>
+    </div>
+
+    <div class="band">
+      <div class="stat"><div class="n">~58M</div><div class="l">Q&amp;A pairs in the Stack&nbsp;Overflow corpus<sup class="cite" data-c="6">6</sup></div></div>
+      <div class="stat"><div class="n">−76%</div><div class="l">monthly questions, Nov&nbsp;2022 → Dec&nbsp;2024<sup class="cite" data-c="1">1</sup></div></div>
+      <div class="stat"><div class="n">84%</div><div class="l">of developers now use AI tools (2025)<sup class="cite" data-c="9">9</sup></div></div>
+      <div class="stat"><div class="n">33%</div><div class="l">still <em>trust</em> what those tools output<sup class="cite" data-c="9">9</sup></div></div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+<!-- ============ 1. THE PERFECT CLASSROOM ============ -->
+<section id="classroom">
+  <div class="sec-no">01 — The perfect classroom</div>
+  <h2>The accidental machine-teaching format</h2>
+  <p class="sub">Nobody designed Stack Overflow to train neural networks. But its structure — a natural-language question, a reasoned human answer, and a community verdict — happens to be the exact shape modern language models need to learn from.</p>
+
+  <p>A language model is trained to predict the next token given a prompt. To turn a raw predictor into a <em>helpful</em> assistant, labs need three increasingly scarce ingredients: clean instruction → response pairs, worked reasoning, and a signal for what counts as a <em>good</em> answer. A single Stack Overflow thread quietly supplies all three.</p>
+
+  <div class="lab">
+    <div class="lab-head"><span class="dot"></span><span class="t">Interactive · anatomy of a training example</span></div>
+    <div class="hint">Click a layer below to see how each part of an ordinary Q&amp;A post maps onto a phase of LLM training.</div>
+
+    <div class="so-card">
+      <div class="so-q">
+        <div class="so-votes anno" id="a-reward">
+          <span class="arrow">▲</span><span class="count">312</span><span class="arrow">▼</span><span class="acc">✓</span>
+        </div>
+        <div class="so-body">
+          <div class="so-title anno" id="a-instruct">How do I reverse a string in Python?</div>
+          <div class="anno" id="a-instruct2" style="color:#3b4045">I have a string and I want the characters in reverse order. What is the idiomatic way to do this without writing an explicit loop?</div>
+          <span class="so-tag">python</span><span class="so-tag">string</span><span class="so-tag">slicing</span>
+          <div class="so-meta">asked 11 years ago · viewed 2.1m times</div>
+        </div>
+      </div>
+      <div class="so-q" style="border:none">
+        <div class="so-votes"><span class="arrow">▲</span><span class="count" style="color:#48a868">1.4k</span><span class="arrow">▼</span></div>
+        <div class="so-body">
+          <div class="anno" id="a-cot">Python strings are sequences, so you can use an <b>extended slice</b> with a negative step. This walks the sequence backwards and is far faster than a manual loop because it runs in C:</div>
+          <div class="so-code anno" id="a-completion">>>> s = "hello"
+>>> s[::-1]
+'olleh'</div>
+          <div class="anno" id="a-cot2" style="color:#3b4045;font-size:14px">The <code>[::-1]</code> means "start to end, step −1". Note this returns a new string — strings are immutable — and it also works for lists. For Unicode with combining characters, prefer <code>"".join(reversed(s))</code>.</div>
+          <div class="so-meta">answered 11 years ago · edited 4 years ago</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="legend" id="annoLegend">
+      <button data-target="a-instruct,a-instruct2" data-msg="<b>Instruction tuning.</b> The natural-language question is the <em>prompt</em>. Pre-training makes a model fluent; pairing millions of real human questions with real answers is what makes it follow instructions. Meta's LIMA showed 1,000 such curated Q&amp;A examples beat models tuned on 52,000 noisier ones.<sup>7</sup>">
+        <span class="sw" style="background:var(--accent)"></span><span class="ll">Prompt → Instruction tuning</span></button>
+      <button data-target="a-completion" data-msg="<b>The completion.</b> The accepted code block is the target the model learns to generate. Because answers are de-duplicated, edited, and version-tagged over years, the snippet is closer to canonical than almost any raw GitHub file.">
+        <span class="sw" style="background:var(--good)"></span><span class="ll">Code → Completion target</span></button>
+      <button data-target="a-cot,a-cot2" data-msg="<b>Chain-of-thought.</b> Great answers explain <em>why</em> before <em>what</em> — edge cases, complexity, immutability, Unicode caveats. Training on this prose is a big part of how models learned to reason step-by-step instead of blurting syntax.">
+        <span class="sw" style="background:var(--purple)"></span><span class="ll">Explanation → Reasoning</span></button>
+      <button data-target="a-reward" data-msg="<b>The reward signal.</b> Upvotes and the green ✓ are a human-preference label that already exists — no annotation budget required. Labs sort answers by score, or feed the score straight into RLHF. We model this in §2.">
+        <span class="sw" style="background:var(--so)"></span><span class="ll">Votes → Reward signal</span></button>
+    </div>
+    <div class="readout" id="annoMsg">Pick a layer above. Each one corresponds to a stage labs otherwise pay millions of dollars in human annotation to recreate.</div>
+  </div>
+
+  <ul class="clean">
+    <li><strong>Instruction–response pairing.</strong> Millions of "prompt → completion" pairs, already written in the exact register users talk to assistants in.</li>
+    <li><strong>Built-in quality control.</strong> Upvotes, downvotes and the accepted-answer checkmark are a ready-made preference dataset — the precursor to RLHF, donated for free.</li>
+    <li><strong>Step-by-step reasoning.</strong> The best answers narrate the logic and the edge cases, teaching chain-of-thought rather than syntax-memorization.</li>
+    <li><strong>Debugging context.</strong> Endless error-message → fix pairs taught models to recognize a stack trace and propose the patch.</li>
+  </ul>
+</section>
+
+<!-- ============ 2. THE REWARD SIGNAL ============ -->
+<section id="reward">
+  <div class="sec-no">02 — The reward signal</div>
+  <h2>Turning upvotes into a reward function</h2>
+  <p class="sub">The hardest problem in alignment is teaching a model what "good" looks like. Stack Overflow had already crowd-sourced that judgment, one vote at a time — and researchers wired it directly into the training loop.</p>
+
+  <p>When Hugging Face built <strong>StackLLaMA</strong>, an end-to-end RLHF demo, they didn't hire annotators. They converted each answer's community score into a reward with a formula this simple:<sup class="cite" data-c="8">8</sup></p>
+
+  <div class="card center">
+    <div id="rewardFormula" style="font-size:20px"></div>
+  </div>
+
+  <div class="lab">
+    <div class="lab-head"><span class="dot"></span><span class="t">Interactive · the reward model</span></div>
+    <div class="hint">Move the sliders the way the community would have voted. Watch the scalar reward the model is trained to maximize.</div>
+    <div class="grid2">
+      <div>
+        <div class="ctrl">
+          <div class="row"><label>Upvotes (net score)</label><span class="val" id="upvVal">312</span></div>
+          <input type="range" id="upv" min="-5" max="2000" value="312" />
+        </div>
+        <label class="check" style="margin:14px 0 6px"><input type="checkbox" id="acc" checked> Marked as the <b style="color:#48a868;margin-left:4px">accepted ✓</b> answer</label>
+        <div class="readout">
+          Two answers to the same question. The reward model learns to score the <b>accepted, highly-voted</b> one above the rest — exactly the preference ordering RLHF needs, harvested from fifteen years of clicks.
+        </div>
+        <div class="note">StackLLaMA used a <span style="color:var(--accent)">&gt;10M-instruction</span> Stack Exchange set and sampled answer <em>pairs</em>; the higher-reward answer is the "chosen", the other "rejected".<sup>8</sup></div>
+      </div>
+      <div class="center">
+        <div style="color:var(--muted);font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase">Computed reward</div>
+        <div class="big" id="rewardOut" style="color:var(--so);margin:10px 0 4px">8</div>
+        <div id="rewardBar" class="plot" style="height:230px"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 3. THE CORPUS ============ -->
+<section id="corpus">
+  <div class="sec-no">03 — The corpus</div>
+  <h2>How much of "the AI" is literally us</h2>
+  <p class="sub">Stack Exchange shows up by name in the documented recipe of nearly every foundational dataset. Per byte, it punches far above its weight — labs include it <em>specifically</em> for question-answering and code quality.</p>
+
+  <p>Here's the receipt. These are the documented contributions of Stack&nbsp;Overflow / Stack&nbsp;Exchange to public training corpora and code models. Hover any bar for the source.</p>
+
+  <div class="lab">
+    <div class="lab-head"><span class="dot"></span><span class="t">Interactive · the documented recipe</span></div>
+    <div class="hint">Toggle between disk size and the labs' own justification for why curated Q&amp;A made the cut.</div>
+    <div class="toggles" id="corpusToggles">
+      <span class="toggle on" data-mode="size">Disk / token size</span>
+      <span class="toggle" data-mode="quote">Why they included it</span>
+    </div>
+    <div id="corpusPlot" class="plot" style="height:400px"></div>
+    <div class="readout" id="corpusMsg">The Pile devoted <b>5.13%</b> of its weight to Stack Exchange "hoping it will improve the question-answering capabilities of downstream models." LLaMA sorted answers <b>by vote score</b> before training. The signal was never accidental.</div>
+  </div>
+
+  <table class="data">
+    <thead><tr><th>Dataset / model</th><th>Stack Exchange / Overflow share</th><th>Date</th></tr></thead>
+    <tbody>
+      <tr><td>The Pile (EleutherAI)</td><td class="n">32.2 GiB · 5.13% weight · 2 epochs<sup class="cite" data-c="2">2</sup></td><td class="n">Jan 2021</td></tr>
+      <tr><td>LLaMA (Meta)</td><td class="n">78 GB · 2.0% sampling · sorted by score<sup class="cite" data-c="3">3</sup></td><td class="n">Feb 2023</td></tr>
+      <tr><td>RedPajama-V1</td><td class="n">~20B tokens<sup class="cite" data-c="4">4</sup></td><td class="n">2023</td></tr>
+      <tr><td>Dolma / OLMo (AI2)</td><td class="n">29.3M docs · ~19.6B tokens<sup class="cite" data-c="5">5</sup></td><td class="n">2024</td></tr>
+      <tr><td>InCoder (Meta)</td><td class="n">57 GB of Stack Overflow Q&amp;A+comments<sup class="cite" data-c="10">10</sup></td><td class="n">Apr 2022</td></tr>
+      <tr><td>StarCoder2 / The Stack v2</td><td class="n">~11M questions · &gt;10B tokens<sup class="cite" data-c="11">11</sup></td><td class="n">Feb 2024</td></tr>
+      <tr style="opacity:.7"><td>RefinedWeb / Falcon</td><td class="n">deliberately <b style="color:var(--bad)">excluded</b> (the control case)<sup class="cite" data-c="12">12</sup></td><td class="n">Jun 2023</td></tr>
+    </tbody>
+  </table>
+  <div class="note">StarCoder2 didn't just dump the dump: it kept only questions with ≥3 answers, then used Llama-2-70B to rate 20,000 pairs and trained a quality classifier — using Stack&nbsp;Overflow's own vote structure to clean Stack&nbsp;Overflow.<sup>11</sup></div>
+</section>
+
+<!-- ============ 4. THE COLLAPSE ============ -->
+<section id="collapse">
+  <div class="sec-no">04 — The collapse</div>
+  <h2>The chart that broke the flywheel</h2>
+  <p class="sub">The moment a machine could answer instantly, with zero judgment and no "closed as duplicate", the questions stopped coming. Stack Overflow trained the thing that emptied its own front page.</p>
+
+  <p>Every credible version of this chart traces back to one query against Stack&nbsp;Overflow's own public Data Explorer: <span style="font-family:var(--mono);font-size:13px">COUNT(*) … WHERE PostTypeId = 1</span>, grouped by month. The markers below are documented data points; ChatGPT launched on <b>Nov 30, 2022</b>.</p>
+
+  <div class="lab">
+    <div class="lab-head"><span class="dot"></span><span class="t">Interactive · monthly questions asked</span></div>
+    <div class="hint">Toggle the ChatGPT marker and the pre-AI trend line. The decline started softly in 2020; ChatGPT turned it into a cliff.</div>
+    <div class="toggles">
+      <span class="toggle on" id="tgChat">⊙ ChatGPT launch (Nov 2022)</span>
+      <span class="toggle on" id="tgPeak">⊙ All-time peak</span>
+      <span class="toggle" id="tgTrend">⊙ "what-if" no-AI trend</span>
+    </div>
+    <div id="declinePlot" class="plot" style="height:420px"></div>
+    <div class="readout">Peak: <b>~146k</b> questions/month (Mar 2021). ChatGPT launch month: <b>108,563</b>. Two years later (Dec 2024): <b>25,566</b> — a <b>76%</b> fall, back to roughly 2009 volumes.<sup class="cite" data-c="1">1</sup> A controlled study isolated a ~25% drop attributable to ChatGPT specifically, by comparing against markets where it wasn't available.<sup class="cite" data-c="13">13</sup></div>
+  </div>
+
+  <p>This is the <strong>self-cannibalization loop</strong>. The friction Stack Overflow was famous for — waiting for a response, the gatekeeping, the dreaded duplicate flag — was exactly the friction a private, patient, non-judgmental model removed. Usage didn't migrate to a better forum. It migrated <em>out of public view entirely</em>, into one-on-one chats that are never indexed, never voted on, and never seen by the next learner.</p>
+</section>
+
+<!-- ============ 5. THE OUROBOROS ============ -->
+<section id="ouroboros">
+  <div class="sec-no">05 — The ouroboros</div>
+  <h2>What happens when AI eats its own tail</h2>
+  <p class="sub">If new questions stop being asked in public, where does the next generation of training data come from? And what happens to a model trained on the output of the model before it?</p>
+
+  <p>In July 2024, <em>Nature</em> published the canonical result: <strong>"AI models collapse when trained on recursively generated data."</strong> Train a model on its predecessor's output, generation after generation, and the tails of the distribution vanish first — the rare, the novel, the edge case — until the model converges on bland, repetitive sludge.<sup class="cite" data-c="14">14</sup></p>
+
+  <div class="lab">
+    <div class="lab-head"><span class="dot"></span><span class="t">Interactive · model-collapse simulator</span></div>
+    <div class="hint">Each generation trains on a sample of the previous one. Choose whether fresh human data keeps flowing in, then run the generations and watch the distribution.</div>
+    <div class="grid2">
+      <div>
+        <div class="ctrl">
+          <div class="row"><label>Generations</label><span class="val" id="genVal">9</span></div>
+          <input type="range" id="gen" min="1" max="14" value="9" />
+        </div>
+        <div class="ctrl">
+          <div class="row"><label>Sample size / generation</label><span class="val" id="sampVal">120</span></div>
+          <input type="range" id="samp" min="20" max="600" value="120" step="10" />
+        </div>
+        <div class="toggles">
+          <span class="toggle" id="tgMode">Mode: <b id="modeLbl" style="margin-left:5px">replace human data</b></span>
+        </div>
+        <div class="note" id="modeNote">Each generation <b>replaces</b> the corpus with synthetic samples — the Shumailov setup. Watch the curve narrow and drift: that's collapse.<sup>14</sup></div>
+        <div style="margin-top:14px"><span class="toggle on" id="runSim" style="border-color:var(--so);background:rgba(244,128,36,.14);color:var(--so-soft)">▶ Run generations</span></div>
+      </div>
+      <div>
+        <div id="collapsePlot" class="plot" style="height:300px"></div>
+        <div class="readout" id="collapseMsg">Generation 0 is the true human distribution (wide, with fat tails). Press <b>Run</b>.</div>
+      </div>
+    </div>
+  </div>
+
+  <p>The good news, and the live debate: collapse depends on <em>replacing</em> human data with synthetic. A follow-up showed that if you <strong>accumulate</strong> — keep the real data and add synthetic on top — test error stays bounded.<sup class="cite" data-c="15">15</sup> Flip the mode above to see it. Which is precisely why a fresh, human, verified stream of Q&A is suddenly a strategic asset. The supply, meanwhile, is contracting fast: an audit of 14,000 web domains found that in a single year, restrictions locked away <strong>5%+ of all tokens</strong> in the common C4 corpus, and 28%+ of the most actively-maintained sources.<sup class="cite" data-c="16">16</sup></p>
+
+  <blockquote>"What happens when we stop pooling our knowledge with each other and instead pour it straight into The Machine?"
+  <cite>— Peter Nixey, Stack Overflow contributor, in InfoWorld, May 2025<sup class="cite" data-c="17">17</sup></cite></blockquote>
+</section>
+
+<!-- ============ 6. MIRRORS & MEMORY ============ -->
+<section id="mirror">
+  <div class="sec-no">06 — Mirrors &amp; memory</div>
+  <h2>Models learned the code — and the culture</h2>
+  <p class="sub">A model trained on a corpus inherits more than its facts. It inherits its tone, its blind spots, and sometimes its exact words.</p>
+
+  <h3>The "StackGPT" thought experiment <span class="pill illus">illustrative</span></h3>
+  <p>There's a vivid way to feel this, often passed around as a cautionary tale: imagine training a model <em>exclusively</em> on Stack Overflow threads. It would be a phenomenal debugger — and it might also greet a beginner's question with the site's notorious bedside manner:</p>
+  <blockquote>"This is a basic question that shows you haven't done any research. <span style="color:var(--bad)">Downvoted</span> for lack of effort. <span style="color:var(--so)">Marked as duplicate.</span>"
+  <cite>— the kind of answer a culture-faithful model would learn to give</cite></blockquote>
+  <p>Whether or not anyone has shipped exactly this model, the underlying point is well-established and important: <strong>LLMs are mirrors of their training data.</strong> They absorb register and social norms alongside syntax. A model is never just "the code" — it's the community that wrote it.</p>
+
+  <h3>The memorization problem <span class="pill warn">active research</span></h3>
+  <p>When a model is asked a popular question, is it <em>reasoning</em>, or is it reconstructing something it has seen thousands of times? Work studying memorization using answers to Stack&nbsp;Overflow questions suggests that for well-trodden problems, code generation leans heavily on memorized content — a collage of remembered snippets more than fresh synthesis.<sup class="cite" data-c="18">18</sup></p>
+  <p>That's great for accuracy on common tasks and legally fraught for everything else. Stack&nbsp;Overflow content is licensed <strong>CC BY-SA</strong> — free to reuse <em>with attribution and share-alike</em>. When a model regurgitates a snippet verbatim but strips the author and the license, it walks straight into the open question the whole industry is now litigating.<sup class="cite" data-c="6">6</sup></p>
+</section>
+
+<!-- ============ 7. THE ARC ============ -->
+<section id="arc">
+  <div class="sec-no">07 — The historical arc</div>
+  <h2>Eighteen years in seven beats</h2>
+  <div class="tl">
+    <div class="ev">
+      <div class="yr">2008 – 2021 · The golden era</div>
+      <div class="h">Developers build the bedrock</div>
+      <div class="d">A community accretes tens of millions of questions and answers — edge cases, architecture debates, error logs — all voted, edited, and version-tagged. Question volume peaks around 146k/month in March 2021.<sup class="cite" data-c="1">1</sup> In June 2021, Prosus buys Stack Overflow for <b>$1.8B</b>, near the top.<sup class="cite" data-c="19">19</sup></div>
+    </div>
+    <div class="ev blue">
+      <div class="yr">2021 – 2022 · The great scrape</div>
+      <div class="h">The corpus becomes a dataset</div>
+      <div class="d">Stack Exchange is baked into The Pile, LLaMA, InCoder and more — explicitly, and explicitly sorted by vote. The flywheel of free human labor quietly becomes pre-training fuel.</div>
+    </div>
+    <div class="ev blue">
+      <div class="yr">Nov 30, 2022 · The inflection</div>
+      <div class="h">ChatGPT ships</div>
+      <div class="d">Instant, private, judgment-free answers. The CEO would later call it an "existential moment." Question volume begins its cliff.</div>
+    </div>
+    <div class="ev">
+      <div class="yr">Feb – May 2024 · The pivot</div>
+      <div class="h">If you can't beat them, license to them</div>
+      <div class="d">Stack Overflow launches <b>OverflowAPI</b> — Google Cloud / Gemini in February, then a landmark <b>OpenAI</b> deal in May 2024: paid, continuous access to fresh, vetted Q&A, with a promise to cite Stack Overflow inside ChatGPT.<sup class="cite" data-c="20">20</sup></div>
+    </div>
+    <div class="ev bad">
+      <div class="yr">May 2024 · The rebellion</div>
+      <div class="h">Contributors revolt</div>
+      <div class="d">Furious their volunteer work is being sold, some users overwrite or delete their highest-rated answers in protest. Stack Overflow restores the posts and suspends the accounts — citing its perpetual, irrevocable content license.<sup class="cite" data-c="21">21</sup></div>
+    </div>
+    <div class="ev bad">
+      <div class="yr">2023 · The cost</div>
+      <div class="h">28% of staff laid off</div>
+      <div class="d">In October 2023, Stack Overflow cuts roughly 28% of its workforce on the "path to profitability."<sup class="cite" data-c="22">22</sup></div>
+    </div>
+    <div class="ev">
+      <div class="yr">2025 – now · The repositioning</div>
+      <div class="h">From destination to verification layer</div>
+      <div class="d">84% of developers use AI; only 33% trust it, and 45% say their top frustration is "AI solutions that are almost right, but not quite."<sup class="cite" data-c="9">9</sup> Stack Overflow's bet: as machine-written code floods in, <em>human-verified</em> knowledge becomes more valuable, not less.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 8. WHAT'S NEXT ============ -->
+<section id="next">
+  <div class="sec-no">08 — The unsolved problem</div>
+  <h2>Who keeps feeding the machine?</h2>
+  <p class="sub">The hard question isn't technical. It's about incentives.</p>
+  <p>Stack Overflow worked because answering a stranger's question bought you reputation, visibility, and the quiet satisfaction of being right in public. AI removes the audience. Why write the canonical answer to a tricky concurrency bug if the next developer will ask a chatbot — one that learned from your answer but will never send anyone back to you?</p>
+  <ul class="clean">
+    <li><strong>The data-licensing bet.</strong> OpenAI, Google and GitHub pay for a fresh, vetted stream — turning the commons into a metered utility. It funds the company; it doesn't obviously refill the well of <em>volunteers</em>.</li>
+    <li><strong>The verification-layer bet.</strong> Position humans as the trusted ground truth that models cite and RAG-retrieve against — most valuable precisely when AI is "almost right."</li>
+    <li><strong>The execution-feedback escape hatch.</strong> For code specifically, models increasingly learn from running code that compiles and passes tests — verifiable reward that doesn't need a forum. This partly insulates coding from collapse, but it can't invent knowledge about a framework no human has yet written about.<sup class="cite" data-c="15">15</sup></li>
+  </ul>
+  <blockquote>Stack Overflow didn't teach AI the syntax of Python or C++. It gave AI the collective reasoning of millions of engineers solving real problems in public. The open question is how to keep that signal alive once the machine can already answer most of what we'd have asked it.</blockquote>
+</section>
+
+<!-- ============ RESOURCES ============ -->
+<section id="learn">
+  <div class="sec-no">09 — Go deeper</div>
+  <h2>Build this yourself</h2>
+  <p class="sub">Want to move past <em>using</em> AI to understanding — or training — it? A curated path, from attention math to fine-tuning on a dataset like this one.</p>
+  <div class="res">
+    <a class="item" href="https://www.youtube.com/watch?v=kCc8FmEb1nY" target="_blank" rel="noopener">
+      <div class="rk">Video · mechanics</div>
+      <div class="rt">Karpathy — "Let's build GPT, from scratch, in code, spelled out"</div>
+      <div class="rd">The single clearest walk-through of the Transformer and attention, built line by line.</div></a>
+    <a class="item" href="https://www.youtube.com/watch?v=bZQun8Y4L2A" target="_blank" rel="noopener">
+      <div class="rk">Video · the pipeline</div>
+      <div class="rt">Karpathy — "State of GPT"</div>
+      <div class="rd">Base model → instruction tuning → RLHF, exactly the stages a Stack Overflow post feeds.</div></a>
+    <a class="item" href="https://course.fast.ai/" target="_blank" rel="noopener">
+      <div class="rk">Course · practical</div>
+      <div class="rt">fast.ai — Practical Deep Learning for Coders</div>
+      <div class="rd">Top-down and free: build working models first, learn the math as you go.</div></a>
+    <a class="item" href="https://huggingface.co/learn/nlp-course" target="_blank" rel="noopener">
+      <div class="rk">Course · hands-on</div>
+      <div class="rt">Hugging Face NLP Course</div>
+      <div class="rd">Take an open model and fine-tune it on your own dataset — see StackLLaMA for the SO-specific version.</div></a>
+    <a class="item" href="https://arxiv.org/abs/1706.03762" target="_blank" rel="noopener">
+      <div class="rk">Paper · foundational</div>
+      <div class="rt">"Attention Is All You Need" (Vaswani et al., 2017)</div>
+      <div class="rd">The Transformer paper that started all of it.</div></a>
+    <a class="item" href="https://www.nature.com/articles/s41586-024-07566-y" target="_blank" rel="noopener">
+      <div class="rk">Paper · the warning</div>
+      <div class="rt">"AI models collapse when trained on recursively generated data" (Nature, 2024)</div>
+      <div class="rd">Why a fresh human signal is not optional.</div></a>
+  </div>
+</section>
+
+<!-- ============ SOURCES ============ -->
+<section id="sources">
+  <div class="sec-no">10 — Receipts</div>
+  <h2>Sources &amp; honest caveats</h2>
+  <p class="sub">Every headline number above is sourced here. Where reporting is contested or a claim is illustrative, it's flagged — verify before you quote.</p>
+  <p>
+    <span class="pill fact">fact · primary source</span>
+    <span class="pill warn">contested / methodology varies</span>
+    <span class="pill illus">illustrative — not a verified event</span>
+  </p>
+  <details class="sources" open>
+    <summary>Show the full source list (22)</summary>
+    <div class="src">
+    <ol>
+      <li id="s1">Question-volume figures from the Stack Exchange Data Explorer (peak ~146k Mar 2021; 108,563 Nov 2022; 25,566 Dec 2024; −76%). Compiled analyses: <a href="https://gist.github.com/hopeseekr/f522e380e35745bd5bdc3269a9f0b132" target="_blank" rel="noopener">hopeseekr gist</a>, <a href="https://www.ericholscher.com/blog/2025/jan/21/stack-overflows-decline/" target="_blank" rel="noopener">Holscher</a>, <a href="https://blog.pragmaticengineer.com/stack-overflow-is-almost-dead/" target="_blank" rel="noopener">Pragmatic Engineer</a>. <span class="pill warn">peak figure definitionally varies (146k surviving vs ~200k raw posts)</span></li>
+      <li id="s2">The Pile — Stack Exchange at 32.2 GiB / 5.13% weight / 2 epochs. <a href="https://arxiv.org/abs/2101.00027" target="_blank" rel="noopener">arXiv:2101.00027</a>, Table 1.</li>
+      <li id="s3">LLaMA — StackExchange 78 GB, 2.0% sampling, answers "sorted by score." <a href="https://arxiv.org/abs/2302.13971" target="_blank" rel="noopener">arXiv:2302.13971</a>.</li>
+      <li id="s4">RedPajama-V1 — ~20B StackExchange tokens of ~1.2T. <a href="https://arxiv.org/abs/2411.12372" target="_blank" rel="noopener">arXiv:2411.12372</a>.</li>
+      <li id="s5">Dolma v1.7 / OLMo — StackExchange 29.3M docs, ~19.6B tokens. <a href="https://huggingface.co/datasets/allenai/dolma" target="_blank" rel="noopener">Dolma card</a>, <a href="https://arxiv.org/abs/2402.00159" target="_blank" rel="noopener">arXiv:2402.00159</a>.</li>
+      <li id="s6">Stack Overflow corpus size (58M+ Q&amp;A) and CC BY-SA licensing. <a href="https://stackoverflow.co/data-licensing/" target="_blank" rel="noopener">SO data licensing</a>; <a href="https://devclass.com/2024/07/30/stack-exchange-restricts-access-to-dump-of-user-contributed-data-as-it-seeks-to-monetize-content/" target="_blank" rel="noopener">DevClass on the data-dump restriction</a>. <span class="pill warn">whether the dump restriction is compatible with CC BY-SA is disputed</span></li>
+      <li id="s7">LIMA — 1,000 curated examples (≥10 score Stack Exchange answers) beat 52k. <a href="https://arxiv.org/abs/2305.11206" target="_blank" rel="noopener">arXiv:2305.11206</a>.</li>
+      <li id="s8">StackLLaMA — reward <span style="font-family:var(--mono)">round(log2(1+upvotes)) + accepted − (score&lt;0)</span>. <a href="https://huggingface.co/blog/stackllama" target="_blank" rel="noopener">HF blog</a>; dataset <code>lvwerra/stack-exchange-paired</code>.</li>
+      <li id="s9">Stack Overflow Developer Survey 2025 — 84% use AI, trust 33% (distrust 46%), "almost right" the #1 frustration (45%). <a href="https://survey.stackoverflow.co/2025/ai/" target="_blank" rel="noopener">survey.stackoverflow.co/2025/ai</a>.</li>
+      <li id="s10">InCoder — 57 GB of Stack Overflow content alongside 159 GB code. <a href="https://arxiv.org/abs/2204.05999" target="_blank" rel="noopener">arXiv:2204.05999</a>.</li>
+      <li id="s11">StarCoder2 / The Stack v2 — ~11M SO questions, &gt;10B tokens, classifier-filtered. <a href="https://arxiv.org/abs/2402.19173" target="_blank" rel="noopener">arXiv:2402.19173</a>.</li>
+      <li id="s12">RefinedWeb / Falcon — curated sources incl. Stack Exchange deliberately excluded (the control case). <a href="https://arxiv.org/abs/2306.01116" target="_blank" rel="noopener">arXiv:2306.01116</a>.</li>
+      <li id="s13">Controlled estimate: ~25% activity drop attributable to ChatGPT (vs comparison platforms). Summarized via <a href="https://stackoverflow.blog/newsletter/issue-252-ai-s-tragedy-of-the-commons/" target="_blank" rel="noopener">SO blog, Issue 252</a>.</li>
+      <li id="s14">Shumailov et al., "AI models collapse when trained on recursively generated data," <em>Nature</em> 631 (2024). <a href="https://www.nature.com/articles/s41586-024-07566-y" target="_blank" rel="noopener">nature.com</a>.</li>
+      <li id="s15">Gerstgrasser et al., "Is Model Collapse Inevitable? … Accumulating Real and Synthetic Data" — collapse is avoided when data accumulate. <a href="https://arxiv.org/abs/2404.01413" target="_blank" rel="noopener">arXiv:2404.01413</a>.</li>
+      <li id="s16">Longpre et al., "Consent in Crisis: The Rapid Decline of the AI Data Commons," NeurIPS 2024. <a href="https://arxiv.org/abs/2407.14933" target="_blank" rel="noopener">arXiv:2407.14933</a>.</li>
+      <li id="s17">Peter Nixey, quoted in M. Asay, "What comes after Stack Overflow?", InfoWorld, May 2025. <a href="https://www.infoworld.com/article/3988468/what-comes-after-stack-overflow.html" target="_blank" rel="noopener">infoworld.com</a>.</li>
+      <li id="s18">Research on memorization using answers to Stack Overflow questions — code generation as a collage of memorized content for popular problems. <a href="https://openreview.net/" target="_blank" rel="noopener">OpenReview</a>. <span class="pill warn">verify exact venue/claims before quoting specifics</span></li>
+      <li id="s19">Prosus acquires Stack Overflow for $1.8B, June 2021. <a href="https://techcrunch.com/2021/06/02/stack-overflow-acquired-by-prosus-for-a-reported-1-8-billion/" target="_blank" rel="noopener">TechCrunch</a>.</li>
+      <li id="s20">Stack Overflow × OpenAI partnership (OverflowAPI), May 6 2024; Google Cloud / Gemini, Feb 29 2024 (terms undisclosed). <a href="https://openai.com/index/api-partnership-with-stack-overflow/" target="_blank" rel="noopener">OpenAI</a>, <a href="https://techcrunch.com/2024/05/06/stack-overflow-signs-deal-with-openai-to-supply-data-to-its-models/" target="_blank" rel="noopener">TechCrunch</a>.</li>
+      <li id="s21">User protest + account suspensions, May 2024. <a href="https://www.theregister.com/2024/05/09/stack_overflow_banning_users_who/" target="_blank" rel="noopener">The Register</a>. <span class="pill warn">scale of bans reported via affected users, not officially confirmed</span></li>
+      <li id="s22">Stack Overflow lays off ~28% of staff, Oct 2023. <a href="https://techcrunch.com/2023/10/17/stack-overflow-cuts-28-of-its-staff/" target="_blank" rel="noopener">TechCrunch</a>.</li>
+    </ol>
+    </div>
+  </details>
+</section>
+
+</main>
+
+<footer class="wrap">
+  <p><strong style="color:var(--ink)">The Data That Taught the Machines.</strong> An interactive essay on how Stack Overflow built the coding agent — and the incentive problem it left behind.</p>
+  <p>Built in the spirit of a learn-by-dragging sandbox. Vanilla JS, Plotly &amp; KaTeX. No backend, no telemetry. Numbers are sourced above; illustrative items are labeled. Generated with help from Claude Code.</p>
+  <p style="margin-top:14px"><a id="ghlink2" href="#" target="_blank" rel="noopener">Source on GitHub ↗</a></p>
+</footer>
+
+<script>
+/* ---------- scroll progress ---------- */
+const prog = document.getElementById('progress');
+addEventListener('scroll', ()=>{
+  const h = document.documentElement;
+  const sc = h.scrollTop / (h.scrollHeight - h.clientHeight);
+  prog.style.width = (sc*100)+'%';
+}, {passive:true});
+
+/* ---------- repo links (filled after we know the URL) ---------- */
+const REPO = "https://github.com/zozo123/how-stackoverflow-taught-ai";
+document.getElementById('ghlink').href = REPO;
+document.getElementById('ghlink2').href = REPO;
+
+/* ---------- citation jump ---------- */
+document.querySelectorAll('sup.cite').forEach(s=>{
+  s.addEventListener('click', ()=>{
+    const t = document.getElementById('s'+s.dataset.c);
+    if(t){ document.querySelector('details.sources').open=true;
+      t.scrollIntoView({behavior:'smooth',block:'center'});
+      t.style.transition='background .2s'; t.style.background='rgba(244,128,36,.18)';
+      setTimeout(()=>t.style.background='',1400); }
+  });
+});
+
+/* ---------- shared plotly layout ---------- */
+const FONT = {family:'SFMono-Regular,ui-monospace,Menlo,monospace', color:'#9aa7b4', size:12};
+const SO='#f48024', ACC='#58a6ff', GOOD='#3fb950', PUR='#bc8cff', BAD='#f85149';
+function baseLayout(extra){
+  return Object.assign({
+    paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)',
+    font:FONT, margin:{l:54,r:18,t:18,b:42},
+    xaxis:{gridcolor:'#1c232d', zerolinecolor:'#26303b'},
+    yaxis:{gridcolor:'#1c232d', zerolinecolor:'#26303b'},
+    showlegend:false, hoverlabel:{bgcolor:'#161b22', bordercolor:'#26303b', font:{family:FONT.family}}
+  }, extra||{});
+}
+const CFG = {displayModeBar:false, responsive:true};
+
+/* =================================================================
+   1. ANATOMY — annotation highlighter
+==================================================================*/
+const annoMsg = document.getElementById('annoMsg');
+document.querySelectorAll('#annoLegend button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.anno').forEach(a=>a.classList.remove('hl'));
+    btn.dataset.target.split(',').forEach(id=>{
+      const el=document.getElementById(id); if(el) el.classList.add('hl');
+    });
+    annoMsg.innerHTML = btn.dataset.msg;
+  });
+});
+
+/* =================================================================
+   2. REWARD MODEL
+==================================================================*/
+function renderFormula(){
+  if(window.katex){
+    katex.render("r \\;=\\; \\operatorname{round}\\big(\\log_2(1+\\text{upvotes})\\big)\\;+\\;\\underbrace{[\\text{accepted}]}_{+1}\\;-\\;\\underbrace{[\\text{score}<0]}_{-1}",
+      document.getElementById('rewardFormula'), {throwOnError:false, displayMode:true});
+  } else { setTimeout(renderFormula,120); }
+}
+function reward(up, acc){
+  let r = Math.round(Math.log2(1+Math.max(up,0)));
+  if(acc) r += 1;
+  if(up < 0) r -= 1;
+  return r;
+}
+function drawReward(){
+  const up = +document.getElementById('upv').value;
+  const acc = document.getElementById('acc').checked;
+  document.getElementById('upvVal').textContent = up;
+  const r = reward(up, acc);
+  document.getElementById('rewardOut').textContent = r;
+  // comparison: this answer vs a generic downvoted one
+  const rivals = [
+    {n:'this answer', v:r, c:SO},
+    {n:'a −2 answer', v:reward(-2,false), c:BAD},
+    {n:'a +5, not accepted', v:reward(5,false), c:'#6b7682'}
+  ];
+  Plotly.react('rewardBar', [{
+    type:'bar', orientation:'h',
+    y:rivals.map(d=>d.n), x:rivals.map(d=>d.v),
+    marker:{color:rivals.map(d=>d.c)},
+    text:rivals.map(d=>d.v), textposition:'auto',
+    hovertemplate:'%{y}: reward %{x}<extra></extra>'
+  }], baseLayout({margin:{l:120,r:20,t:8,b:30}, xaxis:{gridcolor:'#1c232d', title:'reward', range:[-2, 12]}}), CFG);
+}
+document.getElementById('upv').addEventListener('input', drawReward);
+document.getElementById('acc').addEventListener('change', drawReward);
+
+/* =================================================================
+   3. CORPUS
+==================================================================*/
+const corpus = [
+  {name:'The Pile',     gib:32.2,  why:'"improve question-answering of downstream models"', c:ACC},
+  {name:'LLaMA',        gib:78,    why:'"high quality Q&A", answers sorted by vote score',   c:SO},
+  {name:'InCoder',      gib:57,    why:'SO Q&A + comments as a first-class code source',     c:GOOD},
+  {name:'RedPajama-V1', gib:40,    why:'~20B tokens, open LLaMA reproduction',               c:ACC},
+  {name:'Dolma/OLMo',   gib:39,    why:'~19.6B tokens, sampled at 100%',                     c:PUR},
+  {name:'StarCoder2',   gib:42,    why:'~11M Qs, classifier-cleaned with its own votes',     c:SO},
+];
+let corpusMode='size';
+function drawCorpus(){
+  const sorted=[...corpus].sort((a,b)=>a.gib-b.gib);
+  Plotly.react('corpusPlot', [{
+    type:'bar', orientation:'h',
+    y:sorted.map(d=>d.name),
+    x:sorted.map(d=> corpusMode==='size'? d.gib : 1),
+    marker:{color:sorted.map(d=>d.c)},
+    text: sorted.map(d=> corpusMode==='size'? (d.gib+' GB-eq') : d.why),
+    textposition: corpusMode==='size'?'auto':'inside',
+    insidetextanchor:'start',
+    hovertemplate: corpusMode==='size'
+      ? '%{y}: ~%{x} GB-equivalent SE/SO<extra></extra>'
+      : '%{y}<br>%{text}<extra></extra>'
+  }], baseLayout({
+    margin:{l:96,r:20,t:10,b:40},
+    xaxis: corpusMode==='size'
+      ? {gridcolor:'#1c232d', title:'≈ Stack Exchange / Overflow size (GB-equiv, documented)'}
+      : {visible:false, range:[0,1.05]}
+  }), CFG);
+}
+document.querySelectorAll('#corpusToggles .toggle').forEach(t=>{
+  t.addEventListener('click', ()=>{
+    document.querySelectorAll('#corpusToggles .toggle').forEach(x=>x.classList.remove('on'));
+    t.classList.add('on'); corpusMode=t.dataset.mode; drawCorpus();
+    document.getElementById('corpusMsg').innerHTML = corpusMode==='size'
+      ? 'Sizes are documented disk/token contributions (GB-equivalent for comparison). Small next to web crawl — but included <b>on purpose</b>, for quality.'
+      : 'Read the labs\' own words: every inclusion cites <b>question-answering</b> or <b>quality</b>. RefinedWeb is the control — it dropped curated sources to prove web-only could compete.';
+  });
+});
+
+/* =================================================================
+   4. DECLINE CHART  (documented data points)
+==================================================================*/
+// documented monthly question counts (Stack Exchange Data Explorer-derived)
+const decX = ['2018-01','2019-01','2020-01','2021-03','2022-01','2022-11','2023-03','2023-06','2023-12','2024-03','2024-06','2024-12'];
+const decY = [ 135000,   128000,   118000,   145989,   115000,   108563,   87105,    63752,    42716,    58792,    41616,    25566 ];
+const trendX = ['2022-11','2023-06','2024-06','2024-12'];
+const trendY = [ 108563,   104000,    96000,    92000 ]; // gentle pre-AI extrapolation, illustrative
+let showChat=true, showPeak=true, showTrend=false;
+function drawDecline(){
+  const traces=[{
+    x:decX, y:decY, type:'scatter', mode:'lines+markers',
+    line:{color:SO, width:3, shape:'spline'}, marker:{color:SO, size:7},
+    fill:'tozeroy', fillcolor:'rgba(244,128,36,.10)',
+    hovertemplate:'%{x}<br><b>%{y:,} </b>questions<extra></extra>', name:'questions'
+  }];
+  if(showTrend){
+    traces.push({x:trendX, y:trendY, type:'scatter', mode:'lines',
+      line:{color:ACC, width:2, dash:'dot'},
+      hovertemplate:'%{x}: ~%{y:,} (illustrative no-AI path)<extra></extra>', name:'no-AI'});
+  }
+  const shapes=[], anns=[];
+  if(showChat){
+    shapes.push({type:'line', x0:'2022-11', x1:'2022-11', y0:0, y1:150000, line:{color:'#f85149', width:1.5, dash:'dash'}});
+    anns.push({x:'2022-11', y:150000, text:'ChatGPT', showarrow:false, font:{color:'#f85149', size:11}, yanchor:'bottom'});
+  }
+  if(showPeak){
+    anns.push({x:'2021-03', y:145989, text:'peak ~146k', showarrow:true, arrowcolor:'#9aa7b4', ax:0, ay:-26, font:{color:'#e6edf3', size:11}});
+  }
+  Plotly.react('declinePlot', traces, baseLayout({
+    margin:{l:62,r:18,t:18,b:46},
+    xaxis:{gridcolor:'#1c232d', type:'category', tickangle:-35},
+    yaxis:{gridcolor:'#1c232d', title:'questions / month', rangemode:'tozero'},
+    shapes, annotations:anns
+  }), CFG);
+}
+function bindToggle(id, setter){
+  const el=document.getElementById(id);
+  el.addEventListener('click', ()=>{ el.classList.toggle('on'); setter(el.classList.contains('on')); drawDecline(); });
+}
+bindToggle('tgChat', v=>showChat=v);
+bindToggle('tgPeak', v=>showPeak=v);
+bindToggle('tgTrend', v=>showTrend=v);
+
+/* =================================================================
+   5. MODEL COLLAPSE SIMULATOR
+==================================================================*/
+let collapseMode='replace';
+function gaussSample(mu, sd){ // Box-Muller
+  let u=0,v=0; while(u===0)u=Math.random(); while(v===0)v=Math.random();
+  return mu + sd*Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);
+}
+function normPdf(x, mu, sd){ return Math.exp(-0.5*((x-mu)/sd)**2)/(sd*Math.sqrt(2*Math.PI)); }
+function runCollapse(){
+  const G = +document.getElementById('gen').value;
+  const N = +document.getElementById('samp').value;
+  const trueMu=0, trueSd=1;
+  let mu=trueMu, sd=trueSd;
+  let pool=[]; // for accumulate mode
+  const curves=[];
+  const xs=[]; for(let x=-4;x<=4;x+=0.08) xs.push(x);
+  for(let g=0; g<=G; g++){
+    curves.push({mu, sd, g});
+    // sample this generation from current estimate
+    let s=[]; for(let i=0;i<N;i++) s.push(gaussSample(mu, sd));
+    if(collapseMode==='accumulate'){
+      // always keep the real human anchor + everything so far
+      if(g===0){ for(let i=0;i<N;i++) pool.push(gaussSample(trueMu, trueSd)); }
+      pool = pool.concat(s);
+      const m = pool.reduce((a,b)=>a+b,0)/pool.length;
+      const variance = pool.reduce((a,b)=>a+(b-m)**2,0)/pool.length;
+      mu=m; sd=Math.max(Math.sqrt(variance), 0.05);
+    } else {
+      // replace: refit only on this generation's finite sample -> variance shrinks
+      const m = s.reduce((a,b)=>a+b,0)/s.length;
+      const variance = s.reduce((a,b)=>a+(b-m)**2,0)/s.length;
+      mu=m; sd=Math.max(Math.sqrt(variance), 0.02);
+    }
+  }
+  const traces = curves.map(cv=>{
+    const t = cv.g/Math.max(G,1);
+    const col = cv.g===0 ? '#ffffff' : `rgba(244,128,36,${0.25+0.6*(1-t)})`;
+    return {x:xs, y:xs.map(x=>normPdf(x,cv.mu,cv.sd)), type:'scatter', mode:'lines',
+      line:{color: cv.g===0?'#ffffff':col, width: cv.g===0?2.5:1.3},
+      hovertemplate:`gen ${cv.g}: μ=${cv.mu.toFixed(2)}, σ=${cv.sd.toFixed(2)}<extra></extra>`};
+  });
+  Plotly.react('collapsePlot', traces, baseLayout({
+    margin:{l:40,r:14,t:10,b:34},
+    xaxis:{gridcolor:'#1c232d', title:'knowledge space', range:[-4,4]},
+    yaxis:{gridcolor:'#1c232d', title:'density', rangemode:'tozero'}
+  }), CFG);
+  const last=curves[curves.length-1];
+  const msg=document.getElementById('collapseMsg');
+  if(collapseMode==='replace'){
+    msg.innerHTML = `After <b>${G}</b> generations of training-on-output, σ shrank from <b>1.00</b> to <b>${last.sd.toFixed(2)}</b> and μ drifted to <b>${last.mu.toFixed(2)}</b>. The tails — the rare and novel — are gone. <span style="color:#f85149">That's collapse.</span>`;
+  } else {
+    msg.innerHTML = `Accumulating real + synthetic, σ held near <b>${last.sd.toFixed(2)}</b> after <b>${G}</b> generations. Error stays bounded — collapse is <span style="color:#3fb950">avoided</span>, as long as the human data keeps flowing.`;
+  }
+}
+document.getElementById('gen').addEventListener('input', e=>{document.getElementById('genVal').textContent=e.target.value; runCollapse();});
+document.getElementById('samp').addEventListener('input', e=>{document.getElementById('sampVal').textContent=e.target.value; runCollapse();});
+document.getElementById('runSim').addEventListener('click', runCollapse);
+document.getElementById('tgMode').addEventListener('click', ()=>{
+  collapseMode = collapseMode==='replace' ? 'accumulate' : 'replace';
+  document.getElementById('modeLbl').textContent = collapseMode==='replace' ? 'replace human data' : 'accumulate (keep human data)';
+  document.getElementById('tgMode').classList.toggle('on', collapseMode==='accumulate');
+  document.getElementById('modeNote').innerHTML = collapseMode==='replace'
+    ? 'Each generation <b>replaces</b> the corpus with synthetic samples — the Shumailov setup. Watch the curve narrow and drift: that\'s collapse.<sup>14</sup>'
+    : 'Each generation <b>adds</b> synthetic data on top of the real human corpus — the Gerstgrasser result. Error stays bounded.<sup>15</sup>';
+  runCollapse();
+});
+
+/* =================================================================
+   INIT (after libs load)
+==================================================================*/
+function init(){
+  renderFormula();
+  if(window.renderMathInElement){
+    renderMathInElement(document.body, {delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}], throwOnError:false});
+  }
+  drawReward(); drawCorpus(); drawDecline(); runCollapse();
+}
+if(document.readyState==='complete') init();
+else window.addEventListener('load', init);
+</script>
+</body>
+</html>

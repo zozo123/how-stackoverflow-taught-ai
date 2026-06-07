@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:1200px;height:1200px;overflow:hidden}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+    background:#0d1117;color:#e6edf3;position:relative;
+    background-image:
+      radial-gradient(820px 620px at 96% -8%, rgba(244,128,36,.22), transparent 60%),
+      radial-gradient(700px 560px at -6% 106%, rgba(88,166,255,.14), transparent 58%);
+  }
+  .grid{position:absolute;inset:0;opacity:.45;
+    background-image:linear-gradient(#ffffff07 1px,transparent 1px),linear-gradient(90deg,#ffffff07 1px,transparent 1px);
+    background-size:54px 54px;-webkit-mask-image:radial-gradient(130% 120% at 40% 25%,#000 42%,transparent 82%)}
+  .mono{font-family:"SFMono-Regular",ui-monospace,Menlo,monospace}
+  .pad{position:absolute;inset:0;padding:78px 80px;display:flex;flex-direction:column}
+
+  .top{display:flex;align-items:center;gap:16px;margin-bottom:40px}
+  .logo{display:flex;flex-direction:column;gap:5px}
+  .logo i{display:block;height:6px;border-radius:3px;background:#f48024}
+  .logo i:nth-child(1){width:19px;margin-left:15px}
+  .logo i:nth-child(2){width:35px}
+  .logo i:nth-child(3){width:35px}
+  .kicker{font-size:17px;letter-spacing:.30em;text-transform:uppercase;color:#f6913f;font-weight:600}
+
+  h1{font-size:74px;line-height:1.07;letter-spacing:-1.8px;font-weight:800}
+  h1 .g{background:linear-gradient(95deg,#f48024,#ffd9a8 60%,#f6913f);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .sub{font-size:27px;color:#9aa7b4;margin-top:30px;line-height:1.45;max-width:900px}
+
+  /* data panel */
+  .R{margin-top:46px;background:rgba(22,27,34,.72);border:1px solid #26303b;border-radius:22px;padding:30px 34px;
+     box-shadow:0 36px 90px -50px rgba(0,0,0,.9);display:flex;align-items:center;gap:34px}
+  .R .left{flex:none}
+  .R .cap{font-size:16px;letter-spacing:.10em;text-transform:uppercase;color:#6b7682}
+  .R .big{font-size:88px;font-weight:800;color:#f48024;line-height:.96;margin-top:8px;letter-spacing:-2px}
+  .R .big small{display:block;font-size:24px;color:#9aa7b4;font-weight:600;letter-spacing:.02em;margin-top:8px}
+  .R .right{flex:1}
+
+  .B{margin-top:auto;display:flex;align-items:flex-end;justify-content:space-between}
+  .chips{display:flex;gap:16px}
+  .chip{background:#161b22;border:1px solid #26303b;border-radius:15px;padding:16px 22px;display:flex;flex-direction:column;gap:4px}
+  .chip .n{font-size:33px;font-weight:800;color:#e6edf3;line-height:1}
+  .chip .l{font-size:15px;color:#9aa7b4}
+  .url{text-align:right}
+  .url .a{font-size:21px;color:#58a6ff}
+  .url .s{display:block;font-size:14px;letter-spacing:.10em;color:#6b7682;margin-top:9px;text-transform:uppercase}
+</style>
+</head>
+<body>
+  <div class="grid"></div>
+  <div class="pad">
+    <div class="top">
+      <span class="logo"><i></i><i></i><i></i></span>
+      <span class="kicker mono">Interactive deep-dive · coding agents</span>
+    </div>
+
+    <h1>Stack Overflow taught<br>AI to code.<br><span class="g">Then it trained its<br>own replacement.</span></h1>
+    <div class="sub">15 years of human Q&amp;A became the data behind every coding agent — a hands-on, fully sourced story of the data that taught the machines.</div>
+
+    <div class="R">
+      <div class="left">
+        <div class="cap mono">Questions / month</div>
+        <div class="big mono">−76%<small>since ChatGPT launched</small></div>
+      </div>
+      <div class="right">
+        <svg width="100%" height="200" viewBox="0 0 560 200" preserveAspectRatio="none" fill="none">
+          <defs>
+            <linearGradient id="fill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#f48024" stop-opacity="0.32"/>
+              <stop offset="1" stop-color="#f48024" stop-opacity="0"/>
+            </linearGradient>
+            <linearGradient id="stroke" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0" stop-color="#f6913f"/><stop offset="1" stop-color="#f48024"/>
+            </linearGradient>
+          </defs>
+          <path d="M0 54 L70 42 L140 60 L190 26 L246 74 L310 128 L386 162 L470 182 L560 190 L560 200 L0 200 Z" fill="url(#fill)"/>
+          <path d="M0 54 L70 42 L140 60 L190 26 L246 74 L310 128 L386 162 L470 182 L560 190"
+            stroke="url(#stroke)" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+          <line x1="246" y1="0" x2="246" y2="200" stroke="#f85149" stroke-width="2" stroke-dasharray="6 6" opacity="0.9"/>
+          <circle cx="246" cy="74" r="6" fill="#f85149"/>
+          <text x="254" y="18" fill="#f85149" font-family="monospace" font-size="17">Nov 2022</text>
+          <circle cx="190" cy="26" r="6" fill="#f6913f"/>
+          <text x="4" y="20" fill="#9aa7b4" font-family="monospace" font-size="16">peak ~146k</text>
+          <circle cx="560" cy="190" r="6" fill="#f48024"/>
+        </svg>
+      </div>
+    </div>
+
+    <div class="B">
+      <div class="chips">
+        <div class="chip"><span class="n mono">~58M</span><span class="l">Q&amp;A pairs ingested</span></div>
+        <div class="chip"><span class="n mono">7</span><span class="l">datasets, by name</span></div>
+        <div class="chip"><span class="n mono">5</span><span class="l">hands-on sims</span></div>
+      </div>
+      <div class="url mono">
+        <span class="a">zozo123.github.io/<br>how-stackoverflow-taught-ai</span>
+        <span class="s">vanilla JS · Plotly · KaTeX · sourced</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

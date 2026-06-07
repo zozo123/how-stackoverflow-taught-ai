@@ -21,7 +21,14 @@ A single-page interactive essay with hands-on widgets:
 9. **Go deeper** — a curated learning path (Karpathy, fast.ai, Hugging Face, the foundational papers).
 10. **Receipts** — every headline number sourced; contested and illustrative claims explicitly flagged.
 
-See [`POST.md`](./POST.md) for the written article version.
+See [`POST.md`](./POST.md) for the written article version, and [`SOCIAL.md`](./SOCIAL.md) for launch copy (X thread, LinkedIn, HN).
+
+## Social cards
+
+- `og-image.png` (1200×630) — wired into Open Graph + Twitter meta; auto-previews when the link is shared.
+- `og-square.png` (1200×1200) — square variant for Instagram / Mastodon / manual posts.
+
+Both are generated from `og.html` / `og-square.html` via headless Chrome — edit the HTML and re-render.
 
 ## Run locally
 

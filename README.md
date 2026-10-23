@@ -1,8 +1,10 @@
 # The Data That Taught the Machines
 
-**An interactive deep-dive into how Stack Overflow became the foundational training data for AI coding agents — and then trained its own replacement.**
+An interactive, sourced essay by [Yossi Eliaz](https://zozo123.github.io/) (published June 2026) on how Stack Overflow Q&A became a major training source for AI coding models, and how new questions declined after ChatGPT.
 
-🔗 **Live:** https://zozo123.github.io/how-stackoverflow-taught-ai/
+**Live:** https://zozo123.github.io/how-stackoverflow-taught-ai/
+
+![Share card: Stack Overflow taught AI to code, with a monthly-questions chart falling 76% after ChatGPT](og-image.png)
 
 Built in the spirit of a *learn-by-dragging* sandbox (inspired by the [market-making-sandbox](https://zozo123.github.io/market-making-sandbox/)): vanilla JS, [Plotly](https://plotly.com/javascript/) & [KaTeX](https://katex.org/). No backend, no telemetry, single file.
 
@@ -21,12 +23,12 @@ A single-page interactive essay with hands-on widgets:
 9. **Go deeper** — a curated learning path (Karpathy, fast.ai, Hugging Face, the foundational papers).
 10. **Receipts** — every headline number sourced; contested and illustrative claims explicitly flagged.
 
-See [`POST.md`](./POST.md) for the written article version, and [`SOCIAL.md`](./SOCIAL.md) for launch copy (X thread, LinkedIn, HN).
+See [`POST.md`](./POST.md) for the written article version.
 
 ## Social cards
 
 - `og-image.png` (1200×630) — wired into Open Graph + Twitter meta; auto-previews when the link is shared.
-- `og-square.png` (1200×1200) — square variant for Instagram / Mastodon / manual posts.
+- `og-square.png` (1200×1200) — square variant.
 
 Both are generated from `og.html` / `og-square.html` via headless Chrome — edit the HTML and re-render.
 

@@ -1,8 +1,10 @@
-# The Data That Taught the Machines: How Stack Overflow Built the Coding Agent
+# The Data That Taught the Machines: How Stack Overflow Taught AI to Code
 
-> An interactive companion lives at the deployed site — drag the sliders, watch the corpus, and run the model-collapse simulation. This is the written version.
+*By [Yossi Eliaz](https://zozo123.github.io/) · June 2026*
 
-It is an absolutely fascinating story, and it is bigger than "Stack Overflow helped." For fifteen years, developers volunteered to build the most rigorously structured dataset of programming logic in human history. Then we taught a machine to read it — and it learned to replace us.
+> An [interactive companion](https://zozo123.github.io/how-stackoverflow-taught-ai/) lets you drag the sliders, watch the corpus, and run the model-collapse simulation. This is the written version.
+
+The story is bigger than "Stack Overflow helped." For fifteen years, developers built one of the largest public, community-voted collections of programming Q&A. Then labs used it to train AI coding models, which now answer many of the questions people used to ask there.
 
 Here is exactly how that data taught AI to *think* like a programmer, the crisis it created, and what happens next.
 

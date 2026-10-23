@@ -3,20 +3,44 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>The Data That Taught the Machines · How Stack Overflow Built the Coding Agent</title>
-<meta name="description" content="An interactive deep-dive into how 15 years of Stack Overflow Q&A became the foundational training data for AI coding agents — the perfect classroom, the reward signal, the corpus, the collapse, and what comes next." />
-<meta property="og:title" content="The Data That Taught the Machines" />
-<meta property="og:description" content="How Stack Overflow accidentally built the perfect dataset for teaching AI to code — and then trained its own replacement. Interactive, sourced, hands-on." />
+<title>How Stack Overflow Taught AI to Code · Yossi Eliaz</title>
+<meta name="description" content="Interactive, sourced essay by Yossi Eliaz: how Stack Overflow Q&amp;A became AI coding training data, and how monthly questions fell 76% from Nov 2022 to Dec 2024." />
+<meta name="author" content="Yossi Eliaz" />
+<link rel="canonical" href="https://zozo123.github.io/how-stackoverflow-taught-ai/" />
+<meta property="og:title" content="The Data That Taught the Machines: how Stack Overflow taught AI to code" />
+<meta property="og:description" content="Interactive, sourced essay by Yossi Eliaz on how Stack Overflow Q&amp;A became a major training source for AI coding models, and how new questions declined after ChatGPT." />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="https://zozo123.github.io/how-stackoverflow-taught-ai/" />
 <meta property="og:image" content="https://zozo123.github.io/how-stackoverflow-taught-ai/og-image.png" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
-<meta property="og:image:alt" content="Stack Overflow didn't just help AI learn to code — it was the classroom. A declining-questions chart with a ChatGPT marker." />
+<meta property="og:image:alt" content="Stack Overflow taught AI to code, by Yossi Eliaz. A declining monthly-questions chart with a ChatGPT marker." />
+<meta property="article:author" content="Yossi Eliaz" />
+<meta property="article:published_time" content="2026-06-07" />
 <meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:title" content="The Data That Taught the Machines" />
-<meta name="twitter:description" content="How 15 years of human Q&A became the training data for AI coding agents — and then trained its own replacement. Interactive & sourced." />
+<meta name="twitter:title" content="The Data That Taught the Machines: how Stack Overflow taught AI to code" />
+<meta name="twitter:description" content="Interactive, sourced essay by Yossi Eliaz on how Stack Overflow Q&amp;A became a major training source for AI coding models, and how new questions declined after ChatGPT." />
 <meta name="twitter:image" content="https://zozo123.github.io/how-stackoverflow-taught-ai/og-image.png" />
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "The Data That Taught the Machines: how Stack Overflow taught AI to code",
+  "description": "Interactive, sourced essay on how Stack Overflow Q&A became training data for AI coding models, and how new questions declined after ChatGPT.",
+  "url": "https://zozo123.github.io/how-stackoverflow-taught-ai/",
+  "mainEntityOfPage": "https://zozo123.github.io/how-stackoverflow-taught-ai/",
+  "image": "https://zozo123.github.io/how-stackoverflow-taught-ai/og-image.png",
+  "datePublished": "2026-06-07",
+  "dateModified": "2026-10-22",
+  "inLanguage": "en",
+  "author": {
+    "@type": "Person",
+    "name": "Yossi Eliaz",
+    "url": "https://yossieliaz.netlify.app/",
+    "sameAs": ["https://github.com/zozo123", "https://www.linkedin.com/in/yossi-eliaz/"]
+  }
+}
+</script>
 
 <link rel="preconnect" href="https://cdn.jsdelivr.net" />
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous" />
@@ -54,8 +78,9 @@
   nav.top .brand .stack i:nth-child(1){width:11px;margin-left:7px}
   nav.top .brand .stack i:nth-child(2){width:18px}
   nav.top .brand .stack i:nth-child(3){width:18px}
-  nav.top a.gh{color:var(--muted);text-decoration:none;font-size:13px;border:1px solid var(--line);padding:5px 11px;border-radius:7px}
+  nav.top a.gh{color:var(--muted);text-decoration:none;font-size:13px;border:1px solid var(--line);padding:5px 11px;border-radius:7px;white-space:nowrap;flex:none;margin-left:12px}
   nav.top a.gh:hover{color:var(--ink);border-color:var(--so)}
+  @media(max-width:480px){nav.top .brand{font-size:13px;line-height:1.25}}
 
   /* hero */
   header.hero{padding:120px 0 38px;text-align:center}
@@ -65,6 +90,7 @@
   .lede{font-size:clamp(17px,2.4vw,21px);color:var(--muted);max-width:680px;margin:0 auto 26px}
   .hero-meta{font-family:var(--mono);font-size:12.5px;color:var(--faint);display:flex;gap:18px;justify-content:center;flex-wrap:wrap}
   .hero-meta b{color:var(--muted);font-weight:600}
+  .hero-meta a{color:var(--muted)}
 
   /* big stat band */
   .band{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:46px 0 10px}
@@ -101,6 +127,7 @@
   .ctrl label{color:var(--muted);font-family:var(--mono);font-size:12.5px;letter-spacing:.04em}
   .ctrl .val{font-family:var(--mono);color:var(--so);font-weight:700}
   input[type=range]{-webkit-appearance:none;appearance:none;height:5px;border-radius:5px;background:var(--panel2);outline:none;width:100%}
+  input[type=range]:focus-visible{outline:2px solid var(--so);outline-offset:4px}
   input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:17px;height:17px;border-radius:50%;background:var(--so);cursor:pointer;border:3px solid #2a1a0a;box-shadow:0 0 0 1px var(--so)}
   input[type=range]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;background:var(--so);cursor:pointer;border:3px solid #2a1a0a}
   .toggles{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
@@ -187,6 +214,7 @@
   details.sources summary{cursor:pointer;color:var(--so);font-family:var(--mono);font-size:13px;letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px}
   hr.soft{border:none;border-top:1px dashed var(--line);margin:30px 0}
   .center{text-align:center}
+  .katex-display{overflow-x:auto;overflow-y:hidden;max-width:100%;padding:4px 0}
 </style>
 </head>
 <body>
@@ -200,8 +228,10 @@
   <div class="wrap">
     <div class="kicker">An interactive deep-dive · coding agents</div>
     <h1>Stack Overflow didn't just <em>help</em> AI learn to code.<br><span class="grad">It was the classroom.</span></h1>
-    <p class="lede">For fifteen years, developers volunteered to build the most rigorously structured dataset of programming logic in human history. Then we taught a machine to read it — and it learned to replace us. Drag the sliders, watch the corpus, and see exactly how human Q&A became machine reasoning.</p>
+    <p class="lede">An interactive essay by Yossi Eliaz (June 2026): Stack Overflow's question–answer–vote format made it a key training and reward source for AI coding models, and monthly new questions fell about 76% from Nov 2022 to Dec 2024.</p>
+    <p class="lede">For fifteen years, developers built one of the largest public, community-voted collections of programming Q&amp;A. Then labs used it to train AI coding models, which now answer many of the questions people used to ask there. Drag the sliders, watch the corpus, and see how human Q&amp;A became machine reasoning.</p>
     <div class="hero-meta">
+      <span>By <a href="https://zozo123.github.io/">Yossi Eliaz</a> · June 2026</span>
       <span><b>Built with</b> vanilla JS · Plotly · KaTeX</span>
       <span><b>No backend.</b> No telemetry.</span>
       <span><b>Every number</b> is sourced ↓</span>
@@ -294,7 +324,7 @@
     <div class="grid2">
       <div>
         <div class="ctrl">
-          <div class="row"><label>Upvotes (net score)</label><span class="val" id="upvVal">312</span></div>
+          <div class="row"><label for="upv">Upvotes (net score)</label><span class="val" id="upvVal">312</span></div>
           <input type="range" id="upv" min="-5" max="2000" value="312" />
         </div>
         <label class="check" style="margin:14px 0 6px"><input type="checkbox" id="acc" checked> Marked as the <b style="color:#48a868;margin-left:4px">accepted ✓</b> answer</label>
@@ -383,11 +413,11 @@
     <div class="grid2">
       <div>
         <div class="ctrl">
-          <div class="row"><label>Generations</label><span class="val" id="genVal">9</span></div>
+          <div class="row"><label for="gen">Generations</label><span class="val" id="genVal">9</span></div>
           <input type="range" id="gen" min="1" max="14" value="9" />
         </div>
         <div class="ctrl">
-          <div class="row"><label>Sample size / generation</label><span class="val" id="sampVal">120</span></div>
+          <div class="row"><label for="samp">Sample size / generation</label><span class="val" id="sampVal">120</span></div>
           <input type="range" id="samp" min="20" max="600" value="120" step="10" />
         </div>
         <div class="toggles">
@@ -403,7 +433,7 @@
     </div>
   </div>
 
-  <p>The good news, and the live debate: collapse depends on <em>replacing</em> human data with synthetic. A follow-up showed that if you <strong>accumulate</strong> — keep the real data and add synthetic on top — test error stays bounded.<sup class="cite" data-c="15">15</sup> Flip the mode above to see it. Which is precisely why a fresh, human, verified stream of Q&A is suddenly a strategic asset. The supply, meanwhile, is contracting fast: an audit of 14,000 web domains found that in a single year, restrictions locked away <strong>5%+ of all tokens</strong> in the common C4 corpus, and 28%+ of the most actively-maintained sources.<sup class="cite" data-c="16">16</sup></p>
+  <p>The good news, and the live debate: collapse depends on <em>replacing</em> human data with synthetic. A follow-up showed that if you <strong>accumulate</strong> — keep the real data and add synthetic on top — test error stays bounded.<sup class="cite" data-c="15">15</sup> Flip the mode above to see it. Which is precisely why a fresh, human, verified stream of Q&amp;A is suddenly a strategic asset. The supply, meanwhile, is contracting fast: an audit of 14,000 web domains found that in a single year, restrictions locked away <strong>5%+ of all tokens</strong> in the common C4 corpus, and 28%+ of the most actively-maintained sources.<sup class="cite" data-c="16">16</sup></p>
 
   <blockquote>"What happens when we stop pooling our knowledge with each other and instead pour it straight into The Machine?"
   <cite>— Peter Nixey, Stack Overflow contributor, in InfoWorld, May 2025<sup class="cite" data-c="17">17</sup></cite></blockquote>
@@ -449,7 +479,7 @@
     <div class="ev">
       <div class="yr">Feb – May 2024 · The pivot</div>
       <div class="h">If you can't beat them, license to them</div>
-      <div class="d">Stack Overflow launches <b>OverflowAPI</b> — Google Cloud / Gemini in February, then a landmark <b>OpenAI</b> deal in May 2024: paid, continuous access to fresh, vetted Q&A, with a promise to cite Stack Overflow inside ChatGPT.<sup class="cite" data-c="20">20</sup></div>
+      <div class="d">Stack Overflow launches <b>OverflowAPI</b> — Google Cloud / Gemini in February, then a landmark <b>OpenAI</b> deal in May 2024: paid, continuous access to fresh, vetted Q&amp;A, with a promise to cite Stack Overflow inside ChatGPT.<sup class="cite" data-c="20">20</sup></div>
     </div>
     <div class="ev bad">
       <div class="yr">May 2024 · The rebellion</div>
@@ -535,7 +565,7 @@
       <li id="s3">LLaMA — StackExchange 78 GB, 2.0% sampling, answers "sorted by score." <a href="https://arxiv.org/abs/2302.13971" target="_blank" rel="noopener">arXiv:2302.13971</a>.</li>
       <li id="s4">RedPajama-V1 — ~20B StackExchange tokens of ~1.2T. <a href="https://arxiv.org/abs/2411.12372" target="_blank" rel="noopener">arXiv:2411.12372</a>.</li>
       <li id="s5">Dolma v1.7 / OLMo — StackExchange 29.3M docs, ~19.6B tokens. <a href="https://huggingface.co/datasets/allenai/dolma" target="_blank" rel="noopener">Dolma card</a>, <a href="https://arxiv.org/abs/2402.00159" target="_blank" rel="noopener">arXiv:2402.00159</a>.</li>
-      <li id="s6">Stack Overflow corpus size (58M+ Q&amp;A) and CC BY-SA licensing. <a href="https://stackoverflow.co/data-licensing/" target="_blank" rel="noopener">SO data licensing</a>; <a href="https://devclass.com/2024/07/30/stack-exchange-restricts-access-to-dump-of-user-contributed-data-as-it-seeks-to-monetize-content/" target="_blank" rel="noopener">DevClass on the data-dump restriction</a>. <span class="pill warn">whether the dump restriction is compatible with CC BY-SA is disputed</span></li>
+      <li id="s6">Stack Overflow corpus size (58M+ Q&amp;A) and CC BY-SA licensing. <a href="https://stackoverflow.co/data-licensing/" target="_blank" rel="noopener">SO data licensing</a>; <a href="https://meta.stackexchange.com/questions/401324/announcing-a-change-to-the-data-dump-process" target="_blank" rel="noopener">Stack Exchange's announcement of the data-dump change (Jul 2024)</a>. <span class="pill warn">whether the dump restriction is compatible with CC BY-SA is disputed</span></li>
       <li id="s7">LIMA — 1,000 curated examples (≥10 score Stack Exchange answers) beat 52k. <a href="https://arxiv.org/abs/2305.11206" target="_blank" rel="noopener">arXiv:2305.11206</a>.</li>
       <li id="s8">StackLLaMA — reward <span style="font-family:var(--mono)">round(log2(1+upvotes)) + accepted − (score&lt;0)</span>. <a href="https://huggingface.co/blog/stackllama" target="_blank" rel="noopener">HF blog</a>; dataset <code>lvwerra/stack-exchange-paired</code>.</li>
       <li id="s9">Stack Overflow Developer Survey 2025 — 84% use AI, trust 33% (distrust 46%), "almost right" the #1 frustration (45%). <a href="https://survey.stackoverflow.co/2025/ai/" target="_blank" rel="noopener">survey.stackoverflow.co/2025/ai</a>.</li>
@@ -560,9 +590,9 @@
 </main>
 
 <footer class="wrap">
-  <p><strong style="color:var(--ink)">The Data That Taught the Machines.</strong> An interactive essay on how Stack Overflow built the coding agent — and the incentive problem it left behind.</p>
+  <p><strong style="color:var(--ink)">The Data That Taught the Machines.</strong> An interactive essay on how Stack Overflow taught AI to code — and the incentive problem it left behind.</p>
   <p>Built in the spirit of a learn-by-dragging sandbox. Vanilla JS, Plotly &amp; KaTeX. No backend, no telemetry. Numbers are sourced above; illustrative items are labeled. Generated with help from Claude Code.</p>
-  <p style="margin-top:14px"><a id="ghlink2" href="#" target="_blank" rel="noopener">Source on GitHub ↗</a></p>
+  <p style="margin-top:14px"><a href="https://zozo123.github.io/">More writing by Yossi Eliaz</a> · <a id="ghlink2" href="#" target="_blank" rel="noopener">Source on GitHub ↗</a></p>
 </footer>
 
 <script>
